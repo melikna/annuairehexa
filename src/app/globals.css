@@ -1,0 +1,217 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================================================
+   Police Marianne (système de design de l'État français)
+   Utilisée comme référence pour les sites publics français.
+   Si non disponible, fallback sur le système.
+   ============================================================================= */
+@import url('https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.11.2/dist/fonts/Marianne.css') layer(base);
+
+/* =============================================================================
+   Variables CSS globales
+   ============================================================================= */
+:root {
+  --color-brand: #1d4ed8;
+  --color-brand-hover: #1e40af;
+  --color-accent: #16a34a;
+  --color-text: #111827;
+  --color-text-secondary: #6b7280;
+  --color-border: #e5e7eb;
+  --color-bg: #f9fafb;
+  --color-bg-white: #ffffff;
+  --color-status-active: #16a34a;
+  --color-status-ceased: #6b7280;
+  --color-status-warning: #d97706;
+  
+  /* Typographie */
+  --font-base: 'Marianne', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  
+  /* Espacement */
+  --container-max: 80rem;
+}
+
+/* =============================================================================
+   Reset et base
+   ============================================================================= */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-base);
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+/* =============================================================================
+   Accessibilité — Focus visible
+   ============================================================================= */
+:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* =============================================================================
+   Utilitaires de layout
+   ============================================================================= */
+.container-main {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* =============================================================================
+   Statuts d'entités
+   ============================================================================= */
+.status-badge {
+  @apply inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full;
+}
+
+.status-badge--active {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-badge--ceased,
+.status-badge--closed {
+  @apply bg-gray-100 text-gray-700;
+}
+
+.status-badge--partial {
+  @apply bg-amber-100 text-amber-800;
+}
+
+/* =============================================================================
+   Composants de carte
+   ============================================================================= */
+.entity-card {
+  @apply bg-white rounded-lg border border-gray-200 p-4 hover:border-brand-600 hover:shadow-sm transition-all duration-150;
+}
+
+.entity-card:focus-within {
+  @apply ring-2 ring-brand-500 ring-offset-1;
+}
+
+/* =============================================================================
+   Champ de recherche
+   ============================================================================= */
+.search-input {
+  @apply w-full px-4 py-3 text-base border border-gray-300 rounded-lg 
+         focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500
+         placeholder:text-gray-400;
+}
+
+/* =============================================================================
+   Navigation par fil d'Ariane
+   ============================================================================= */
+.breadcrumb {
+  @apply flex items-center gap-1 text-sm text-gray-500 flex-wrap;
+}
+
+.breadcrumb a {
+  @apply text-brand-600 hover:text-brand-800 hover:underline;
+}
+
+.breadcrumb-separator {
+  @apply text-gray-400 select-none;
+}
+
+/* =============================================================================
+   Tableaux
+   ============================================================================= */
+.data-table {
+  @apply w-full text-sm border-collapse;
+}
+
+.data-table th {
+  @apply bg-gray-50 text-left font-semibold text-gray-700 px-4 py-3 border-b border-gray-200;
+}
+
+.data-table td {
+  @apply px-4 py-3 border-b border-gray-100 text-gray-900;
+}
+
+.data-table tr:hover td {
+  @apply bg-gray-50;
+}
+
+/* =============================================================================
+   Zones publicitaires (réservation d'espace)
+   Le CSS réserve l'espace pour éviter les CLS ; la pub n'est chargée
+   qu'après consentement valide.
+   ============================================================================= */
+.ad-slot {
+  @apply w-full overflow-hidden;
+  contain: layout;
+}
+
+.ad-slot--leaderboard {
+  min-height: 90px;
+  max-height: 90px;
+}
+
+.ad-slot--rectangle {
+  min-height: 250px;
+  max-height: 250px;
+}
+
+.ad-slot--skyscraper {
+  min-height: 600px;
+  max-height: 600px;
+}
+
+/* La publicité ne doit jamais ressembler à un bouton de navigation */
+.ad-slot::before {
+  content: 'Publicité';
+  @apply text-xs text-gray-400 block text-center py-1;
+}
+
+/* =============================================================================
+   Impression
+   ============================================================================= */
+@media print {
+  .no-print,
+  .ad-slot,
+  header nav,
+  footer {
+    display: none !important;
+  }
+  
+  body {
+    font-size: 12pt;
+  }
+  
+  a::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.8em;
+    color: #666;
+  }
+}
+
+/* =============================================================================
+   Accessibilité — Texte pour lecteurs d'écran uniquement
+   ============================================================================= */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* =============================================================================
+   Animation de chargement squelette
+   ============================================================================= */
+.skeleton {
+  @apply bg-gray-200 animate-pulse rounded;
+}

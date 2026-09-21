@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aef-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://aef_user:aef_secure_password@db:5432/annuaire_prod
+      - DATABASE_URL_READONLY=postgresql://aef_user:aef_secure_password@db:5432/annuaire_prod
+      - NEXT_PUBLIC_SITE_NAME=Annuaire Entreprises France
+      - NEXT_PUBLIC_SITE_DOMAIN=annuaire-entreprises.fr
+      - NEXT_PUBLIC_SITE_URL=https://annuaire-entreprises.fr
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    container_name: aef-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: aef_user
+      POSTGRES_PASSWORD: aef_secure_password
+      POSTGRES_DB: annuaire_prod
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aef_user -d annuaire_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+    driver: local

@@ -1,0 +1,16 @@
+{
+  "short_name": "Annuairehexa",
+  "name": "Annuairehexa — Annuaire des Entreprises de France",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#1d4ed8",
+  "display": "standalone",
+  "lang": "fr-FR"
+}
