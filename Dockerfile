@@ -6,7 +6,9 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm ci
+# Coolify can inject NODE_ENV=production during installation. Build tools
+# (TypeScript, Tailwind, PostCSS) must still be installed deterministically.
+RUN npm ci --include=dev --no-audit --no-fund
 
 # 2. Rebuild the source code only when needed
 FROM base AS builder
