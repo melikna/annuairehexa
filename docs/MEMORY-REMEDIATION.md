@@ -34,6 +34,17 @@ Sources corrigées préparées dans `/root/annuairehexa-memory-fix/` et dans le 
 
 Le projet Coolify est relié à `melikna/annuairehexa`, branche `main`. Cette synchronisation reporte les sources corrigées et les évolutions déjà présentes sur le VPS dans le dépôt. Coolify utilise le Dockerfile versionné, avec les limites mémoire persistantes de la fiche applicative. Les futurs déploiements suivent la branche main.
 
+La chaîne GitHub → Coolify a été reconfigurée le 1er octobre :
+
+- Webhook GitHub `push` activé avec signature HMAC ; secret conservé dans GitHub et Coolify, jamais dans le dépôt.
+- Déploiement automatique activé pour `main`, un seul build simultané sur le VPS.
+- Dockerfile chargé depuis Git, sans copie personnalisée stockée dans Coolify.
+- Installation explicite des dépendances de compilation via `npm ci --include=dev`, même si Coolify injecte `NODE_ENV=production`.
+- Contrôle HTTP `/robots.txt` activé avant bascule : intervalle 30 s, délai 5 s, trois essais, délai initial 30 s.
+- Premier déploiement Git validé avec le commit `2a27d1ff2baac3aa640728deebded45c9c10cd37` : statut Coolify `finished`, conteneur `healthy`, site HTTPS en 200 et limites mémoire vérifiées.
+
+Une copie Git complète existe aussi sur le VPS dans `/root/annuairehexa-git/`. Utiliser le dépôt Git pour les prochaines évolutions ; les anciens dossiers de récupération restent des sauvegardes de travail.
+
 Ne pas versionner les anciens scripts de déploiement contenant des identifiants intégrés ; ils ne sont pas inclus dans cette synchronisation et sont exclus du versionnement.
 
 ## Vérifications et exploitation
