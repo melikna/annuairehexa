@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  cacheMaxMemorySize: 16 * 1024 * 1024,
   // TypeScript strict
   typescript: {
     tsconfigPath: './tsconfig.json',
@@ -54,6 +55,8 @@ const nextConfig: NextConfig = {
 
   // Expérimental : optimisations
   experimental: {
+    cpus: 1,
+    webpackMemoryOptimizations: true,
     // Optimisation des imports de packages volumineux
     optimizePackageImports: ['lucide-react'],
   },

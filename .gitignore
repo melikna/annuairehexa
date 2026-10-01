@@ -34,3 +34,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local recovery archives and legacy scripts with embedded VPS credentials
+*.tar
+*.tar.gz
+scripts/vps-exec.js
+scripts/test-ssh.js
+scripts/deploy-to-vps.js
+scripts/setup-vps.js
+scripts/test-bodacc.js
+scripts/check-docker.js
+scripts/run-remote-test.js

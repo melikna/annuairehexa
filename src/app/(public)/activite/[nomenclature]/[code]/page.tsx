@@ -8,6 +8,7 @@ import { getSearchEngine } from '@/lib/search/engine'
 import { NAF_SECTIONS } from '@/lib/naf/sections'
 import { formatSiren, formatTrancheEffectif } from '@/lib/publication/service'
 import { ListingFilters } from '@/components/search/ListingFilters'
+import { formatResultCount } from '@/lib/search/pagination-utils'
 import { Search, Tag, AlertTriangle, ArrowRight, Building2, Briefcase, ChevronRight } from 'lucide-react'
 
 export const revalidate = 3600
@@ -215,7 +216,7 @@ export default async function ActiviteDetailPage({ params, searchParams }: Activ
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-1">
               {searchResult.pagination.total > 0
-                ? `${searchResult.pagination.total.toLocaleString('fr-FR')} entreprises répertoriées`
+                ? `${formatResultCount(searchResult.pagination.total).displayCount}`
                 : `Entreprises du code ${decodedCode}`}
             </h2>
             <p className="text-sm text-gray-600">
@@ -250,10 +251,16 @@ export default async function ActiviteDetailPage({ params, searchParams }: Activ
             </h2>
             {searchResult.pagination.total > 0 && (
               <span className="text-sm text-gray-500">
-                Page {searchResult.pagination.page} sur {searchResult.pagination.totalPages || 1} ({searchResult.pagination.total} résultats)
+                Page {searchResult.pagination.page} sur {searchResult.pagination.totalPages || 1} ({formatResultCount(searchResult.pagination.total).displayCount})
               </span>
             )}
           </div>
+
+          {formatResultCount(searchResult.pagination.total).notice && (
+            <div className="p-3 mb-4 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 leading-relaxed">
+              {formatResultCount(searchResult.pagination.total).notice}
+            </div>
+          )}
 
           {searchResult.results.length === 0 ? (
             <div className="p-8 bg-gray-50 border border-gray-200 rounded-xl text-center">

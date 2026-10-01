@@ -261,7 +261,7 @@ export default async function EtablissementPage({ params }: EtablissementPagePro
                     )}
                     {seniority && isOpen && (
                       <span className="text-xs bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full font-medium">
-                        Créé il y a {seniority.texte}
+                        {seniority.isFuture ? `Création ${seniority.texte}` : `Créé il y a ${seniority.texte}`}
                       </span>
                     )}
                   </div>
@@ -483,7 +483,7 @@ export default async function EtablissementPage({ params }: EtablissementPagePro
             <div className="bg-gray-50 rounded-2xl border border-gray-200 p-5 text-xs text-gray-600 space-y-2">
               <h3 className="font-bold text-gray-900">Source publique</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Données certifiées conformes au répertoire national Insee Sirene.
+                Données publiques issues du répertoire national Insee Sirene (Licence Ouverte 2.0).
               </p>
               <div className="pt-2 border-t border-gray-200 space-y-1">
                 <Link href="/sources" className="block text-blue-600 hover:underline">

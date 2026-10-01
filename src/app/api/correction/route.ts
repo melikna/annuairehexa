@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getDb } from '@/lib/db/client'
+import { recordSuppression } from '@/lib/search/suppression-registry'
 
 const correctionSchema = z.object({
   entity_id: z.string().trim().regex(/^(\d{9}|\d{14})$/, 'Doit être un SIREN (9 chiffres) ou un SIRET (14 chiffres)'),
   request_type: z.enum(['correction', 'opposition', 'suppression', 'acces']),
   description: z.string().trim().min(5, 'La description doit comporter au moins 5 caractères').max(2000),
+  requester_role: z.string().optional(),
   requester_name: z.string().optional(),
   requester_email: z.string().email().optional(),
   consent_quality: z.any().optional(),
@@ -25,6 +27,7 @@ export async function POST(request: NextRequest) {
         entity_id: formData.get('entity_id'),
         request_type: formData.get('request_type'),
         description: formData.get('description'),
+        requester_role: formData.get('requester_role'),
         requester_name: formData.get('requester_name'),
         requester_email: formData.get('requester_email'),
         consent_quality: formData.get('consent_quality'),
@@ -43,8 +46,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { entity_id, request_type, description, requester_name, requester_email } = parsed.data
+    const { entity_id, request_type, description, requester_role, requester_name, requester_email } = parsed.data
     const entity_type = entity_id.length === 9 ? 'unite_legale' : 'etablissement'
+
+    // Enregistrement immédiat dans le registre local d'opposition (effet immédiat O(1))
+    await recordSuppression({
+      entityId: entity_id,
+      requestType: request_type,
+      description,
+      requesterName: requester_role ? `[${requester_role}] ${requester_name ?? ''}` : requester_name,
+      requesterEmail: requester_email,
+    })
 
     let recordId = `rgpd-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
@@ -75,7 +87,7 @@ export async function POST(request: NextRequest) {
     } catch (dbError) {
       console.warn('[API /correction] DB non joignable, enregistrement mémoire/log fallback:', dbError)
       // On consigne la demande pour ne pas bloquer l'exercice des droits RGPD
-      console.log(`[RGPD DEMANDE REÇUE] SIREN: ${entity_id}, Type: ${request_type}, Demandeur: ${requester_name} (${requester_email})`)
+      console.log(`[RGPD DEMANDE REÇUE] SIREN: ${entity_id}, Type: ${request_type}, Qualité: ${requester_role}, Demandeur: ${requester_name} (${requester_email})`)
     }
 
     // Si soumis par formulaire HTML standard, rediriger vers une page de confirmation

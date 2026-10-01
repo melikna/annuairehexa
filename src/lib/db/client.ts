@@ -53,14 +53,8 @@ export function getDb(): ReturnType<typeof postgres> {
     )
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    if (!global.__db) {
-      global.__db = createPool(url)
-    }
-    return global.__db
-  }
-
-  return createPool(url, { max: 20 })
+  global.__db ??= createPool(url, { max: 5 })
+  return global.__db
 }
 
 /**
@@ -74,14 +68,9 @@ export function getDbReadonly(): ReturnType<typeof postgres> {
     throw new Error('DATABASE_URL non définie.')
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    if (!global.__db_readonly) {
-      global.__db_readonly = createPool(url, { max: 5 })
-    }
-    return global.__db_readonly
-  }
-
-  return createPool(url, { max: 10 })
+  if (url === process.env.DATABASE_URL) return getDb()
+  global.__db_readonly ??= createPool(url, { max: 5 })
+  return global.__db_readonly
 }
 
 /**

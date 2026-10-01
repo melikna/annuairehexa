@@ -4,9 +4,9 @@ import { PublicLayout } from '@/components/layout/PublicLayout'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 
 export const metadata: Metadata = {
-  title: 'Méthodologie',
+  title: 'Méthodologie et traçabilité des données',
   description:
-    'Comment fonctionne cet annuaire, quelles sont ses sources, ses limites et la façon dont nous appliquons les règles de diffusion.',
+    'Fonctionnement de l\'annuaire, présentation exhaustive des sources publiques (Sirene, BODACC, RNE, Géo), règles de diffusion et gestion des droits.',
   alternates: { canonical: '/methodologie' },
 }
 
@@ -16,106 +16,118 @@ export default function MethodologiePage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Breadcrumb items={[{ label: 'Accueil', href: '/' }, { label: 'Méthodologie' }]} />
 
-        <h1 className="text-3xl font-bold text-gray-900 mt-4 mb-2">Méthodologie</h1>
-        <p className="text-gray-600 mb-8">Comment cet annuaire fonctionne, d'où viennent les données et quelles sont ses limites.</p>
+        <h1 className="text-3xl font-bold text-gray-900 mt-4 mb-2">Méthodologie &amp; Traçabilité des Données</h1>
+        <p className="text-gray-600 mb-8">
+          Principes de fonctionnement, inventaire des sources officielles mobilisées et engagements de transparence.
+        </p>
 
         <div className="prose prose-sm max-w-none space-y-8">
-          <Section title="1. Source des données">
+          <Section title="1. Sources des données publiques">
             <p>
-              Toutes les informations sur les entreprises et établissements proviennent du{' '}
-              <strong>répertoire Sirene</strong> de l'<a href="https://www.insee.fr" target="_blank" rel="noopener noreferrer">INSEE</a>{' '}
-              (Institut national de la statistique et des études économiques).
-              Ces données sont diffusées sous{' '}
-              <a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence" target="_blank" rel="noopener noreferrer">Licence Ouverte 2.0</a>.
-            </p>
-            <p>
-              Nous n'inventons, ne déduisons, ni ne croisons des données provenant d'autres sources pour en inférer des informations que Sirene ne contient pas.
-              Chaque champ affiché correspond directement à une variable Sirene, à sa valeur normalisée, ou indique clairement son absence.
-            </p>
-            <p>
-              <Link href="/sources" className="text-blue-600 hover:underline">→ Détail des sources et licences</Link>
-            </p>
-          </Section>
-
-          <Section title="2. Mise à jour des données">
-            <p>
-              Les fichiers stocks Sirene sont mis à jour mensuellement par l'INSEE.
-              Notre base est synchronisée régulièrement. La date de fraîcheur des données est affichée sur chaque fiche.
-            </p>
-            <p>
-              Il peut exister un décalage entre la réalité et les données affichées, notamment pour les créations,
-              cessations ou modifications récentes. Pour toute démarche formelle ou délivrance d'actes certifiés, consultez les organismes compétents.
-            </p>
-          </Section>
-
-          <Section title="3. Statut de diffusion" id="diffusion-partielle">
-            <p>
-              Chaque entreprise ou établissement dispose d'un <strong>statut de diffusion</strong> dans Sirene&nbsp;:
+              AnnuaireHexa consolide et restitue des données publiques issues exclusivement des répertoires légaux officiels
+              de l'État français, réutilisées sous <strong>Licence Ouverte 2.0 (Etalab)</strong> :
             </p>
             <ul className="list-disc pl-5 space-y-2">
               <li>
-                <strong>Diffusion intégrale (O)</strong> : toutes les informations disponibles sont affichées.
+                <strong>Répertoire Sirene (INSEE)</strong> : état civil des entreprises et établissements, statut administratif (actif / cessé),
+                code d'activité principale (APE / NAF), forme juridique et tranches d'effectifs.
               </li>
               <li>
-                <strong>Diffusion partielle (P)</strong> : l'entreprise ou son représentant légal a exercé son droit d'opposition.
-                Pour les personnes physiques : l'identité (nom, prénom), l'adresse précise et la géolocalisation sont masquées.
-                Pour les personnes morales : l'adresse précise et la géolocalisation de l'établissement sont masquées.
+                <strong>BODACC (DILA / Journaux Officiels)</strong> : avis d'immatriculation, modifications générales, ventes et cessions,
+                et procédures collectives (sauvegardes, redressements et liquidations judiciaires).
+              </li>
+              <li>
+                <strong>Registre National des Entreprises (RNE / INPI)</strong> : gouvernance, mandataires sociaux, dirigeants et formalités
+                d'immatriculation centralisées par l'Institut National de la Propriété Industrielle.
+              </li>
+              <li>
+                <strong>Référentiel géographique (API Géo / DINUM)</strong> : découpage officiel des communes, départements et régions
+                (Code Officiel Géographique de l'INSEE).
+              </li>
+              <li>
+                <strong>Nomenclature NAF Rév. 2 (INSEE)</strong> : table officielle des 732 sous-classes d'activités économiques françaises.
               </li>
             </ul>
             <p>
-              En cas de valeur inconnue ou contradictoire du statut de diffusion, nous appliquons une règle conservatrice&nbsp;:
-              l'entité n'est pas publiée.
-            </p>
-            <p>
-              Les entités non diffusibles n'apparaissent pas dans les résultats de recherche ni sur aucune page publique de ce site.
+              <Link href="/sources" className="text-blue-600 hover:underline">→ Consulter le détail exhaustif des sources, fréquences et licences</Link>
             </p>
           </Section>
 
-          <Section title="4. Exercer ses droits">
+          <Section title="2. Fréquence d'actualisation et fraîcheur des données">
             <p>
-              Toute personne physique immatriculée en tant qu'entrepreneur individuel, ou représentant légal d'une personne morale,
-              peut exercer son droit d'opposition à la diffusion directement auprès de l'INSEE.
+              Plutôt que des allégations de « temps réel » absolu, AnnuaireHexa documente précisément les cycles de synchronisation :
             </p>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>
+                <strong>Données administratives Sirene &amp; RNE :</strong> synchronisées quotidiennement via l'API publique de l'État (recherche-entreprises.api.gouv.fr).
+              </li>
+              <li>
+                <strong>Annonces légales BODACC :</strong> interrogées en direct auprès de la plateforme OpenDataSoft de la DILA lors de la consultation d'une fiche ou du flux de créations.
+              </li>
+              <li>
+                <strong>Date de consultation :</strong> chaque fiche indique la date de consultation et les dates de publication ou jugement figurant dans les annonces sources.
+              </li>
+            </ul>
             <p>
-              Si vous constatez une inexactitude sur ce site, utilisez notre{' '}
-              <Link href="/correction" className="text-blue-600 hover:underline">formulaire de correction</Link>.
-              Ce formulaire est gratuit.
+              Un décalage temporel peut exister entre l'accomplissement d'une formalité auprès d'un greffe ou du guichet unique et sa répercussion
+              dans les fichiers ouverts de l'INSEE ou de la DILA. Seuls les extraits officiels (Kbis, avis Sirene, certificats de non-faillite)
+              délivrés par les greffes ou l'INSEE font foi juridiquement.
             </p>
+          </Section>
+
+          <Section title="3. Protection de la vie privée et statut de diffusion (statut P)">
             <p>
-              Pour exercer vos droits RGPD (accès, rectification, opposition, effacement), consultez notre{' '}
-              <Link href="/confidentialite" className="text-blue-600 hover:underline">politique de confidentialité</Link>.
+              En application de l'article <strong>A123-96 du Code de commerce</strong> et des articles 17 et 21 du <strong>RGPD</strong>,
+              AnnuaireHexa applique une règle de protection stricte et centralisée sur toutes ses surfaces d'affichage :
             </p>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>
+                <strong>Personnes physiques en opposition (statut P Insee) :</strong> leur identité nominative (nom, prénom), leur adresse personnelle,
+                leur géolocalisation et leurs coordonnées précises sont intégralement masquées. La dénomination est neutralisée en
+                « Entrepreneur individuel (diffusion restreinte) » et leurs fiches sont associées à une directive <code>noindex</code>.
+              </li>
+              <li>
+                <strong>Absence de fuite dans les flux publics :</strong> les entités non diffusibles sont exclues des widgets de l'accueil (nouvelles créations),
+                des suggestions d'entreprises similaires et des sitemaps publics.
+              </li>
+            </ul>
+          </Section>
+
+          <Section title="4. Exercice des droits (Opposition, Rectification, Effacement)">
+            <p>
+              Tout entrepreneur individuel ou représentant légal d'entreprise peut faire valoir ses droits :
+            </p>
+            <ul className="list-disc pl-5 space-y-2">
+              <li>
+                <strong>Sur AnnuaireHexa :</strong> via notre{' '}
+                <Link href="/correction" className="text-blue-600 hover:underline font-semibold">guichet gratuit d'exercice des droits</Link>.
+                Votre demande est prise en compte immédiatement dans notre registre local d'opposition.
+              </li>
+              <li>
+                <strong>À la source Insee :</strong> pour que votre opposition s'applique à tous les réutilisateurs de la base Sirene,
+                activez gratuitement votre statut de non-diffusion sur le portail officiel Insee :{' '}
+                <a href="https://statut-diffusion-sirene.insee.fr/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  statut-diffusion-sirene.insee.fr
+                </a>.
+              </li>
+            </ul>
           </Section>
 
           <Section title="5. Ce que cet annuaire ne fait pas">
             <ul className="list-disc pl-5 space-y-2">
-              <li>Nous ne publions pas les identités masquées par Sirene.</li>
-              <li>Nous ne déduisons pas d'informations à partir de croisements avec d'autres bases.</li>
-              <li>Nous n'affichons pas d'avis, de notes ou d'étoiles sur les entreprises.</li>
-              <li>Nous ne garantissons pas l'exactitude ou l'exhaustivité des données (voir couverture).</li>
-              <li>Un code APE ne constitue pas une preuve de qualification, certification ou agrément.</li>
-              <li>Ce site n'est pas affilié à l'INSEE, au gouvernement, ni à aucune administration.</li>
+              <li>Nous n'émettons aucun « score de solvabilité » ni « label de conformité » infondé.</li>
+              <li>Nous ne publions jamais les identités des personnes physiques ayant exercé leur droit d'opposition.</li>
+              <li>Nous n'affichons pas d'avis, de notes d'utilisateurs ou d'appréciations subjectives.</li>
+              <li>Un code APE constitue une nomenclature statistique et n'est pas une preuve de qualification professionnelle ou d'agrément.</li>
+              <li>Ce site est un annuaire d'information économique indépendant, non affilié à l'INSEE, aux tribunaux ou à l'administration.</li>
             </ul>
           </Section>
 
-          <Section title="6. Couverture">
+          <Section title="6. Plafonds techniques de consultation">
             <p>
-              La couverture de notre base dépend des imports réalisés.
-              Nous maintenons un{' '}
-              <Link href="/couverture" className="text-blue-600 hover:underline">rapport de couverture</Link>{' '}
-              indiquant les territoires importés, le nombre d'entités indexées et les limites connues.
-            </p>
-          </Section>
-
-          <Section title="7. Référencement et publicité">
-            <p>
-              Ce site peut afficher des publicités via Google AdSense, uniquement sur les pages éditoriales
-              après consentement valide de l'utilisateur. Aucune publicité n'est affichée sur les formulaires
-              de droits, les pages légales ou les pages de recherche.
-            </p>
-            <p>
-              Les politiques d'indexation (SEO) sont documentées dans les métadonnées de chaque page.
-              Certaines pages (résultats de recherche, fiches avec diffusion partielle) ne sont pas indexées.
+              L'API publique Recherche d'Entreprises de l'État plafonne la consultation paginée à 10 000 résultats par filtre
+              (ex. départements ou secteurs très denses). Lorsqu'un résultat affiche « 10 000+ résultats », il s'agit du plafond
+              technique de recherche et non d'une statistique économique exhaustive de la totalité des entreprises existantes.
             </p>
           </Section>
         </div>

@@ -61,22 +61,26 @@ export default function CorrectionPage() {
             Opposition, Déréférencement &amp; Rectification
           </h1>
           <p className="text-gray-600 text-sm mt-1 leading-relaxed">
-            Exercez vos droits légaux (Articles 16, 17 et 21 du RGPD). Cette procédure est <strong>strictement gratuite</strong> et instruite sous 48h.
+            Exercez vos droits légaux (Articles 16, 17 et 21 du RGPD). Cette procédure est <strong>strictement gratuite</strong>.
+            La prise en compte technique est immédiate sur notre plateforme (instruction sous 48h-72h ouvrées, délai légal statutaire : 30 jours, art. 12.3 RGPD).
           </p>
         </header>
 
         {/* Alerte informative CNIL et INSEE */}
-        <div className="bg-blue-50/70 border border-blue-200 rounded-2xl p-5 mb-8 text-xs text-blue-900 space-y-2">
+        <div className="bg-blue-50/70 border border-blue-200 rounded-2xl p-5 mb-8 text-xs text-blue-900 space-y-2.5">
           <div className="flex items-center gap-2 font-bold text-blue-950">
             <HelpCircle className="w-4 h-4 text-blue-600 shrink-0" />
-            Bon à savoir : Deux niveaux de mise à jour possibles
+            Bon à savoir : Délais et niveaux de mise à jour
           </div>
           <p className="leading-relaxed">
-            <strong>1. Sur Annuairehexa :</strong> Ce formulaire enregistre immédiatement votre demande dans notre registre de blocage
-            et déréférence la fiche entreprise concernée de nos pages publiques et des moteurs de recherche.
+            <strong>1. Sur Annuairehexa :</strong> Votre demande enregistre le numéro dans notre registre d'opposition local.
+            La fiche fait l'objet d'un masquage technique immédiat sur notre plateforme et d'une balise <code>noindex</code>.
           </p>
           <p className="leading-relaxed">
-            <strong>2. À la source Insee :</strong> Pour masquer définitivement votre adresse personnelle de l'ensemble des annuaires
+            <strong>2. Sur les moteurs de recherche externes (Google, Bing) :</strong> La disparition effective des index externes dépend du rythme propre de passage de leurs robots d'exploration (crawl). Annuairehexa ne maîtrise pas la vitesse de purge des caches des moteurs tiers.
+          </p>
+          <p className="leading-relaxed">
+            <strong>3. À la source Insee :</strong> Pour masquer définitivement votre adresse personnelle de l'ensemble des annuaires
             réutilisant la base Sirene, activez également votre droit d'opposition gratuit (statut P) sur le téléservice officiel de l'Insee :{' '}
             <a
               href="https://statut-diffusion-sirene.insee.fr/"
@@ -155,6 +159,25 @@ export default function CorrectionPage() {
                 <option value="suppression">Demande d'effacement / Droit à l'oubli (Art. 17 RGPD)</option>
                 <option value="correction">Rectification d'une information inexacte (Art. 16 RGPD)</option>
                 <option value="acces">Droit d'accès et communication des données (Art. 15 RGPD)</option>
+              </select>
+            </div>
+
+            {/* Qualité du demandeur */}
+            <div>
+              <label htmlFor="requester_role" className="block font-semibold text-gray-800 mb-1.5">
+                Qualité du demandeur <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="requester_role"
+                name="requester_role"
+                required
+                className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-xs bg-gray-50 focus:bg-white transition-colors"
+              >
+                <option value="">Précisez votre lien avec l'entreprise...</option>
+                <option value="entrepreneur">Entrepreneur individuel concerné</option>
+                <option value="dirigeant">Dirigeant ou représentant légal habilité</option>
+                <option value="mandataire">Mandataire dûment mandaté (avocat, expert-comptable, etc.)</option>
+                <option value="tiers">Tiers / Salarié / Ayant droit</option>
               </select>
             </div>
 
@@ -242,6 +265,13 @@ export default function CorrectionPage() {
                   </label>
                 </div>
               </div>
+            </div>
+
+            {/* Avertissement légal antifraude */}
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
+              <p>
+                <strong>Avertissement légal :</strong> Toute déclaration frauduleuse ou tentative d'usurpation d'identité visant à modifier ou masquer les informations d'un tiers sans droit ni mandat est passible des sanctions prévues par l'article 441-1 du Code pénal (jusqu'à 3 ans d'emprisonnement et 45 000 € d'amende). Un justificatif d'identité ou extrait d'immatriculation pourra être exigé en cas de doute légitime.
+              </p>
             </div>
 
             <button

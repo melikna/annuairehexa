@@ -1,10 +1,13 @@
+import { singleFlight } from '@/lib/api/single-flight'
 /**
  * Service Métier : Nouvelles Entreprises Créées (BODACC / RNE en direct)
  * Récupère, filtre et normalise les annonces de créations d'entreprises
  * publiées au BODACC (Bulletin Officiel des Annonces Civiles et Commerciales).
  */
 
+import { BoundedCache } from '@/lib/api/bounded-cache'
 import { safeFetch } from '@/lib/api/fetch-client'
+import { isEntitySuppressed } from '@/lib/search/suppression-registry'
 
 const BODACC_API_BASE = 'https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records'
 
@@ -49,7 +52,8 @@ interface CacheEntry {
   expiresAt: number
 }
 
-const cache = new Map<string, CacheEntry>()
+const cache = new BoundedCache<CacheEntry>()
+const loadOnce = singleFlight<CreationsResponse>(4)
 const CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
 
 /**
@@ -89,6 +93,11 @@ function extractSiren(rec: Record<string, any>): string | null {
 function normalizeCreationRecord(rec: Record<string, any>): CreationItem | null {
   const siren = extractSiren(rec)
 
+  // Vérification prioritaire du registre local d'opposition/suppression
+  if (siren && isEntitySuppressed(siren)) {
+    return null
+  }
+
   // Parsing personne physique ou morale
   let personneData: Record<string, any> = {}
   if (typeof rec.listepersonnes === 'string') {
@@ -127,19 +136,19 @@ function normalizeCreationRecord(rec: Record<string, any>): CreationItem | null 
     acteData = rec.acte
   }
 
-  // Dénomination
+  // Dénomination (privilégier l'enseigne commerciale pour les personnes physiques)
   let denomination =
     personneData.denomination ||
+    personneData.nomCommercial ||
     (personneData.nom
       ? `${personneData.nom} ${personneData.prenom || ''}`.trim()
       : null) ||
-    personneData.nomCommercial ||
     rec.commercant ||
     'Nouvelle entreprise'
 
-  // Si nom commercial disponible et différent
-  if (personneData.nomCommercial && personneData.nom && !personneData.denomination) {
-    denomination = `${personneData.nom} ${personneData.prenom || ''} (${personneData.nomCommercial})`.trim()
+  // Si nom commercial disponible, l'utiliser en priorité pour respecter la vie privée des personnes physiques
+  if (personneData.nomCommercial) {
+    denomination = personneData.nomCommercial
   }
 
   // Activité
@@ -206,77 +215,6 @@ function normalizeCreationRecord(rec: Record<string, any>): CreationItem | null 
 }
 
 /**
- * Données de secours réalistes
- */
-function getFallbackCreations(): CreationItem[] {
-  return [
-    {
-      id: 'FALLBACK-CREA-1',
-      siren: '109526210',
-      denomination: 'GIRL TOUCH BY CD (DUFILS Carla)',
-      formeJuridique: 'Entrepreneur individuel',
-      activite: 'Vente en ligne d\'accessoires de mode via les réseaux sociaux',
-      capital: null,
-      administration: null,
-      departementCode: '02',
-      departementNom: 'Aisne',
-      ville: 'Nogent-l\'Artaud',
-      codePostal: '02310',
-      adresseLigne: '57 rue Ernest Vallée',
-      dateParution: '2026-09-20',
-      dateImmatriculation: '2026-09-10',
-      dateCommencementActivite: '2026-09-03',
-      tribunal: 'Greffe du Tribunal de Commerce de Soissons',
-      urlBodacc: 'https://www.bodacc.fr',
-      parutionNumero: '20260180',
-      numeroAnnonce: 9,
-    },
-    {
-      id: 'FALLBACK-CREA-2',
-      siren: '130131352',
-      denomination: 'DUO DES CIMES',
-      formeJuridique: 'Société Civile Immobilière',
-      activite: 'Gestion et acquisition de biens immobiliers de montagne',
-      capital: '113 208 €',
-      administration: 'Gérant : VAN DEN BERG Annemarie, VINGERHOET Bastian',
-      departementCode: '05',
-      departementNom: 'Hautes-Alpes',
-      ville: 'Puy-Saint-Vincent',
-      codePostal: '05290',
-      adresseLigne: '791 Route De la Pousterle',
-      dateParution: '2026-09-20',
-      dateImmatriculation: '2026-09-12',
-      dateCommencementActivite: '2026-09-12',
-      tribunal: 'Greffe du Tribunal de Commerce de Gap',
-      urlBodacc: 'https://www.bodacc.fr',
-      parutionNumero: '20260180',
-      numeroAnnonce: 56,
-    },
-    {
-      id: 'FALLBACK-CREA-3',
-      siren: '984512781',
-      denomination: 'SOLIS ENERGY CONSULTING',
-      formeJuridique: 'SASU',
-      activite: 'Conseil en transition énergétique et audit solaire',
-      capital: '5 000 €',
-      administration: 'Président : Martin Alex',
-      departementCode: '75',
-      departementNom: 'Paris',
-      ville: 'Paris',
-      codePostal: '75008',
-      adresseLigne: '60 rue François 1er',
-      dateParution: '2026-09-20',
-      dateImmatriculation: '2026-09-18',
-      dateCommencementActivite: '2026-09-18',
-      tribunal: 'Greffe du Tribunal de Commerce de Paris',
-      urlBodacc: 'https://www.bodacc.fr',
-      parutionNumero: '20260180',
-      numeroAnnonce: 104,
-    },
-  ]
-}
-
-/**
  * Récupère les nouvelles entreprises créées avec tri par date décroissante
  */
 export async function fetchNouvellesCreations(
@@ -291,6 +229,7 @@ export async function fetchNouvellesCreations(
   }
 
   try {
+    return await loadOnce(cacheKey, async () => {
     const url = new URL(BODACC_API_BASE)
     const whereClauses: string[] = ["familleavis='creation'"]
 
@@ -346,11 +285,40 @@ export async function fetchNouvellesCreations(
       a.code.localeCompare(b.code)
     )
 
-    const dateDerniereParution = items[0]?.dateParution || new Date().toISOString().slice(0, 10)
+    const dateDerniereParution = items[0]?.dateParution ?? new Date().toISOString().slice(0, 10)
+
+    // Vérification de sécurité RGPD : vérifier le statut de diffusion Sirene des personnes physiques
+    // pour éviter qu'une entité non diffusible (statut P Insee ou opposition) n'apparaisse dans le flux public
+    const candidateItems = items.filter((it) => !it.siren || !isEntitySuppressed(it.siren))
+    const validatedItems: CreationItem[] = []
+
+    for (const item of candidateItems) {
+      if (validatedItems.length >= limit) break
+      if (!item.siren) {
+        validatedItems.push(item)
+        continue
+      }
+      try {
+        const chk = await safeFetch(`${process.env.RECHERCHE_ENTREPRISES_BASE_URL ?? 'https://recherche-entreprises.api.gouv.fr'}/search?q=${item.siren}&per_page=1`, {
+          signal: AbortSignal.timeout(1500),
+        })
+        if (chk.ok) {
+          const chkJson = await chk.json()
+          const match = (chkJson.results ?? []).find((r: any) => r.siren === item.siren)
+          if (match && match.statut_diffusion === 'P') {
+            // Entité sous statut de protection Insee : exclure du flux public d'accueil
+            continue
+          }
+        }
+      } catch {
+        // En cas d'indisponibilité momentanée de l'API de contrôle, on conserve l'item
+      }
+      validatedItems.push(item)
+    }
 
     const result: CreationsResponse = {
       totalCount,
-      results: items.slice(0, limit),
+      results: validatedItems,
       departementsDisponibles,
       dateDerniereParution,
       updatedAt: new Date().toISOString(),
@@ -362,19 +330,16 @@ export async function fetchNouvellesCreations(
     })
 
     return result
+    })
   } catch (error) {
     console.error('[fetchNouvellesCreations] Erreur BODACC:', error)
 
-    const fallbacks = getFallbackCreations()
+    // Zéro risque légal : ne jamais inventer de création d'entreprise ou de données personnelles
     return {
-      totalCount: fallbacks.length,
-      results: fallbacks,
-      departementsDisponibles: [
-        { code: '02', nom: 'Aisne', count: 1 },
-        { code: '05', nom: 'Hautes-Alpes', count: 1 },
-        { code: '75', nom: 'Paris', count: 1 },
-      ],
-      dateDerniereParution: '2026-09-20',
+      totalCount: 0,
+      results: [],
+      departementsDisponibles: [],
+      dateDerniereParution: new Date().toISOString().slice(0, 10),
       updatedAt: new Date().toISOString(),
     }
   }

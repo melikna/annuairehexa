@@ -7,6 +7,9 @@ services:
       dockerfile: Dockerfile
     container_name: aef-app
     restart: always
+    mem_limit: 1536m
+    mem_reservation: 768m
+    memswap_limit: 2048m
     ports:
       - "3000:3000"
     environment:

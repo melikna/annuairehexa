@@ -105,6 +105,7 @@ export async function generateMetadata({ params }: EntreprisePageProps): Promise
     ul.proceduresCollectivesHistorique = liveProcedures
   }
 
+  const isProtected = Boolean(ul.diffusionPartielle || ul.statutDiffusion === 'P')
   const nom = ul.denominationAffichable ?? `Entreprise ${formatSiren(siren)}`
   const statut = ul.estEnProcedureCollective
     ? `en ${ul.natureProcedureCollective || 'procédure collective'}`
@@ -113,25 +114,52 @@ export async function generateMetadata({ params }: EntreprisePageProps): Promise
     : 'Cessée'
   const tva = calculateFrenchVAT(siren)
 
-  const titlePrefix = ul.estEnProcedureCollective
-    ? `ALERTE : ${nom} (${ul.natureProcedureCollective?.toUpperCase() || 'PROCÉDURE COLLECTIVE'})`
-    : `${nom} (SIREN ${formatSiren(siren)})`
+  const hasFinances = Boolean(ul.finances && Object.keys(ul.finances).length > 0)
+  const hasDirigeants = Boolean(ul.dirigeants && ul.dirigeants.length > 0)
+
+  // Construction du titre et de la description strictement selon les données présentes
+  let pageTitle = ''
+  let pageDesc = ''
+
+  if (isProtected) {
+    pageTitle = `Entreprise individuelle (SIREN ${formatSiren(siren)}) : statut et mentions légales | AnnuaireHexa`
+    pageDesc = `Informations administratives publiques de l'entreprise individuelle SIREN ${siren}. Statut ${statut}, données issues des répertoires officiels Insee.`
+  } else if (ul.estEnProcedureCollective) {
+    pageTitle = `Procédure collective : ${nom} (SIREN ${formatSiren(siren)}) | AnnuaireHexa`
+    pageDesc = `Entreprise ${nom} (SIREN ${siren}) faisant l'objet d'une procédure collective (${ul.natureProcedureCollective || 'procédure en cours'}). Annonces légales BODACC.`
+  } else {
+    const details = [
+      'statut',
+      'établissements',
+      hasDirigeants ? 'dirigeants' : null,
+      hasFinances ? 'bilans et chiffres' : null,
+    ].filter(Boolean).join(', ')
+
+    pageTitle = `${nom} (SIREN ${formatSiren(siren)}) : ${details} | AnnuaireHexa`
+    pageDesc = `Fiche légale de ${nom} (SIREN ${siren}). Statut ${statut}, code APE ${
+      ul.activitePrincipale ? `${ul.activitePrincipale}${ul.libelleActivite ? ` (${ul.libelleActivite})` : ''}` : 'non spécifié'
+    }, TVA ${tva}${hasDirigeants ? ', dirigeants' : ''}${hasFinances ? ', bilans déposés' : ''}, siège social et établissements Insee.`
+  }
 
   return {
-    title: `${titlePrefix} : TVA, Dirigeants, Jugements BODACC, Bilan, Chiffres`,
-    description: `Fiche légale complète de ${nom} (SIREN ${siren}). ${
-      ul.estEnProcedureCollective
-        ? `Entreprise faisant l'objet d'une procédure collective (${ul.natureProcedureCollective}). `
-        : ''
-    }Statut ${statut}, code APE ${
-      ul.activitePrincipale || 'non spécifié'
-    }, TVA ${tva}, dirigeants, bilans, conventions collectives, siège social et établissements Insee.`,
+    title: pageTitle,
+    description: pageDesc,
     alternates: {
       canonical: `/entreprise/${siren}`,
     },
+    ...(isProtected
+      ? {
+          robots: {
+            index: false,
+            follow: false,
+          },
+        }
+      : {}),
     openGraph: {
-      title: `${nom} - Fiche légale et financière (SIREN ${formatSiren(siren)})`,
-      description: `Consultez les informations juridiques, dirigeants, numéro de TVA, établissements et code APE de ${nom}. Sources publiques Sirene & BODACC.`,
+      title: isProtected
+        ? `Entreprise individuelle (SIREN ${formatSiren(siren)})`
+        : `${nom} - Fiche légale (SIREN ${formatSiren(siren)})`,
+      description: pageDesc,
       type: 'website',
     },
   }
@@ -181,6 +209,15 @@ export default async function EntreprisePage({ params }: EntreprisePageProps) {
   const formattedTva = formatFrenchVAT(tvaNumber)
   const isLuhnValid = verifyLuhn(siren)
   const seniority = calculateSeniority(ul.dateCreation)
+  const hasCertifications = Boolean(
+    ul.complements &&
+      (ul.complements.estQualiopi ||
+        ul.complements.estOrganismeFormation ||
+        ul.complements.estRge ||
+        ul.complements.estEss ||
+        ul.complements.estSocieteMission ||
+        ul.complements.estBio)
+  )
 
   // Moteur de contenu textuel unique et FAQ ciblée
   const editorial = generateEnterpriseEditorial(ul, siege, ul.nombreEtablissements ?? etablissementsResult.results.length)
@@ -365,7 +402,7 @@ export default async function EntreprisePage({ params }: EntreprisePageProps) {
                 )}
                 {seniority && (
                   <span className="border-l border-gray-200 pl-4">
-                    Créée il y a {seniority.texte}
+                    {seniority.isFuture ? `Création ${seniority.texte}` : `Créée il y a ${seniority.texte}`}
                   </span>
                 )}
               </div>
@@ -530,7 +567,7 @@ export default async function EntreprisePage({ params }: EntreprisePageProps) {
             )}
 
             {/* LABELS, CERTIFICATIONS & AGRÉMENTS */}
-            {ul.complements && (
+            {hasCertifications && ul.complements && (
               <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-xs">
                 <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
                   <Award className="w-5 h-5 text-indigo-600" aria-hidden="true" />
@@ -1004,41 +1041,40 @@ export default async function EntreprisePage({ params }: EntreprisePageProps) {
               </div>
             )}
 
-            {/* Diagnostic de Conformité & Fiabilité Légale */}
+            {/* Constats & Contrôles Techniques Officiels */}
             <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  Score de conformité légale
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  Contrôles techniques et constatations
                 </h3>
-                <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                  {ul.estEnProcedureCollective ? '35 / 100' : '100 / 100'}
-                </span>
               </div>
-              <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-                Contrôle automatique multicritères basé sur les registres légaux Insee, BODACC et fiscaux.
+              <p className="text-[11px] text-gray-500 mb-3 leading-relaxed">
+                Constats factuels vérifiables issus des répertoires officiels de l'État au jour de la consultation.
               </p>
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
-                  <span className="text-gray-600">Statut administratif</span>
+                  <span className="text-gray-600">État administratif déclaré</span>
                   <span className={`font-semibold ${isActive ? 'text-emerald-700' : 'text-gray-600'}`}>
-                    {isActive ? '✓ En activité' : 'Fermée / Cessée'}
+                    {isActive ? 'Actif (en activité)' : 'Fermée / Cessée'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
-                  <span className="text-gray-600">Clé de Luhn SIREN</span>
+                  <span className="text-gray-600">Structure syntaxique SIREN</span>
                   <span className={`font-semibold ${isLuhnValid ? 'text-emerald-700' : 'text-red-700'}`}>
-                    {isLuhnValid ? '✓ Conforme ISO/CEI' : 'Invalide'}
+                    {isLuhnValid ? 'Clé de Luhn valide (ISO/CEI)' : 'Invalide'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
-                  <span className="text-gray-600">Numéro TVA intracom.</span>
-                  <span className="font-semibold text-emerald-700">✓ Calculé VIES</span>
+                  <span className="text-gray-600">Numéro TVA intracommunautaire</span>
+                  <span className="font-semibold text-gray-700 text-right" title="Numéro calculé selon l'algorithme officiel français, non vérifié auprès du service VIES">
+                    Calculé (non vérifié VIES)
+                  </span>
                 </div>
                 <div className="flex items-center justify-between py-1.5">
-                  <span className="text-gray-600">Veille défaillance (BODACC)</span>
-                  <span className={`font-semibold ${ul.estEnProcedureCollective ? 'text-red-700' : 'text-emerald-700'}`}>
-                    {ul.estEnProcedureCollective ? '⚠ Alerte procédure' : '✓ Aucune procédure'}
+                  <span className="text-gray-600">Procédures collectives (BODACC)</span>
+                  <span className={`font-semibold text-right ${ul.estEnProcedureCollective ? 'text-red-700' : 'text-emerald-700'}`}>
+                    {ul.estEnProcedureCollective ? 'Annonce en cours relevée' : 'Aucune annonce dans le périmètre'}
                   </span>
                 </div>
               </div>
@@ -1099,7 +1135,7 @@ export default async function EntreprisePage({ params }: EntreprisePageProps) {
             <div className="bg-gray-50 rounded-2xl border border-gray-200 p-5 space-y-3 text-xs text-gray-600">
               <h3 className="font-bold text-gray-900">Garanties &amp; Sources publiques</h3>
               <p className="leading-relaxed">
-                Les informations de cette fiche sont certifiées conformes aux données publiques ouvertes de la base
+                Les informations de cette fiche sont issues en temps réel des répertoires officiels publics ouverts de la base
                 <strong> Sirene de l'INSEE</strong>, de l'<strong>INPI (RNE)</strong> et du <strong>BODACC</strong> (Licence Ouverte 2.0).
               </p>
               <div className="pt-2 border-t border-gray-200 space-y-1.5">

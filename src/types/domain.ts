@@ -417,6 +417,8 @@ export interface UniteLegalePubliable {
   siretSiege: string | null
   /** Indique si des informations ont été masquées (diffusion partielle) */
   diffusionPartielle: boolean
+  /** Statut de diffusion Sirene ('O' ou 'P') */
+  statutDiffusion?: 'O' | 'P'
   /** Date de fraîcheur de la donnée */
   dateMiseAJour: string | null
   /** Nombre total d'établissements (connu dans notre base) */

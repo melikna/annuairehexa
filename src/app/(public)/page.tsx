@@ -68,6 +68,27 @@ const POPULAR_CITIES = [
   { nom: 'Amiens', slug: 'amiens' },
 ]
 
+const REGION_SUBTITLES: Record<string, string> = {
+  'auvergne-rhone-alpes': '12 départements',
+  'bourgogne-franche-comte': '8 départements',
+  'bretagne': '4 départements',
+  'centre-val-de-loire': '6 départements',
+  'corse': '2 départements',
+  'grand-est': '10 départements',
+  'guadeloupe': 'Outre-mer (971)',
+  'guyane': 'Outre-mer (973)',
+  'hauts-de-france': '5 départements',
+  'ile-de-france': '8 départements',
+  'la-reunion': 'Outre-mer (974)',
+  'martinique': 'Outre-mer (972)',
+  'mayotte': 'Outre-mer (976)',
+  'normandie': '5 départements',
+  'nouvelle-aquitaine': '12 départements',
+  'occitanie': '13 départements',
+  'pays-de-la-loire': '5 départements',
+  'provence-alpes-cote-d-azur': '6 départements',
+}
+
 const KEY_SECTORS = [
   { icon: Hammer, title: 'Construction & BTP', code: 'F', desc: 'Génie civil, maçonnerie, électricité, plomberie, rénovation' },
   { icon: Laptop, title: 'Informatique & Numérique', code: 'J', desc: 'Édition logicielle, programmation, hébergement, IA, web' },
@@ -287,21 +308,38 @@ export default async function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-10">
-            {FALLBACK_REGIONS.map((reg) => (
-              <Link
-                key={reg.code}
-                href={`/region/${reg.slug}`}
-                className="p-3.5 bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50/50 rounded-xl text-center transition-all group"
-              >
-                <span className="text-xs font-mono font-bold text-gray-400 block mb-0.5">
-                  {reg.code}
-                </span>
-                <span className="text-xs font-semibold text-gray-800 group-hover:text-blue-700 transition-colors line-clamp-1">
-                  {reg.nom}
-                </span>
-              </Link>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            {FALLBACK_REGIONS.map((reg) => {
+              const subtitle = REGION_SUBTITLES[reg.slug] ?? 'Région'
+              return (
+                <Link
+                  key={reg.code}
+                  href={`/region/${reg.slug}`}
+                  className="p-3.5 bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50/40 hover:shadow-xs rounded-xl text-center transition-all group flex flex-col items-center justify-center min-h-[86px]"
+                >
+                  <MapPin className="w-4 h-4 text-blue-600 mb-1.5 opacity-75 group-hover:opacity-100 transition-opacity" />
+                  <span className="text-xs font-semibold text-gray-900 group-hover:text-blue-700 transition-colors line-clamp-1 mb-1">
+                    {reg.nom}
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-medium">
+                    {subtitle}
+                  </span>
+                </Link>
+              )
+            })}
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white border border-gray-200 rounded-xl mb-8 text-xs shadow-2xs">
+            <div className="flex items-center gap-2 text-gray-600 text-center sm:text-left">
+              <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>Vous recherchez par numéro de département officiel (75 Paris, 13 Marseille, 69 Lyon, 59 Lille, 33 Bordeaux...) ?</span>
+            </div>
+            <Link
+              href="/departements"
+              className="font-bold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 shrink-0"
+            >
+              Consulter les 101 départements français →
+            </Link>
           </div>
 
           {/* Villes principales */}

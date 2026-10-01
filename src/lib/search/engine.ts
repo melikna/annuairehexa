@@ -12,6 +12,8 @@ import { getDbReadonly } from '@/lib/db/client'
 import { buildUniteLegalePubliable, buildEtablissementPubliable, isPublishable } from '@/lib/publication/service'
 import { safeFetch } from '@/lib/api/fetch-client'
 import { fetchBodaccProcedures } from '@/lib/sync/realtime-service'
+import { isEntitySuppressed } from './suppression-registry'
+import { getNafLabel } from '@/lib/naf/naf-table'
 
 export interface SearchEngine {
   searchUnitesLegales(params: SearchParams): Promise<SearchResult<UniteLegalePubliable>>
@@ -73,7 +75,10 @@ function resolveLegalFormLabel(cat?: string | null): string | null {
 
 function resolveNafLabel(naf?: string | null): string | null {
   if (!naf) return null
-  // Label indicatif basé sur le préfixe
+  const official = getNafLabel(naf)
+  if (official) return official
+
+  // Fallback indicatif basé sur la division (2 chiffres)
   const prefix = naf.slice(0, 2)
   if (prefix === '85') return 'Enseignement et formation'
   if (prefix === '62') return 'Programmation, conseil et autres activités informatiques'
@@ -82,6 +87,7 @@ function resolveNafLabel(naf?: string | null): string | null {
   if (prefix === '47') return 'Commerce de détail'
   if (prefix === '56') return 'Restauration'
   if (prefix === '41' || prefix === '43') return 'Travaux de construction spécialisés'
+  if (prefix === '81') return 'Services relatifs aux bâtiments et aménagement paysager'
   return null
 }
 
@@ -466,7 +472,27 @@ export class SearchEngineHybrid implements SearchEngine {
       if (params.q) url.searchParams.set('q', params.q)
       if (params.departement) url.searchParams.set('departement', params.departement)
       if (params.region) url.searchParams.set('region', params.region)
-      if (params.codeCommune) url.searchParams.set('code_commune', params.codeCommune)
+      if (params.codeCommune) {
+        // Traitement spécifique des communes à arrondissements (Paris, Lyon, Marseille)
+        // car l'INSEE enregistre les établissements sous les codes de leurs arrondissements respectifs
+        if (params.codeCommune === '75056') {
+          // Paris : le département 75 est strictement coextensif à la commune de Paris et couvre les 20 arrondissements
+          url.searchParams.set('departement', '75')
+        } else if (params.codeCommune === '69123') {
+          // Lyon : inclusion des 9 arrondissements municipaux (69381 à 69389)
+          const lyonArr = ['69381', '69382', '69383', '69384', '69385', '69386', '69387', '69388', '69389', '69123'].join(',')
+          url.searchParams.set('code_commune', lyonArr)
+        } else if (params.codeCommune === '13055') {
+          // Marseille : inclusion des 16 arrondissements municipaux (13201 à 13216)
+          const marseilleArr = [
+            '13201', '13202', '13203', '13204', '13205', '13206', '13207', '13208',
+            '13209', '13210', '13211', '13212', '13213', '13214', '13215', '13216', '13055'
+          ].join(',')
+          url.searchParams.set('code_commune', marseilleArr)
+        } else {
+          url.searchParams.set('code_commune', params.codeCommune)
+        }
+      }
       if (params.codePostal) url.searchParams.set('code_postal', params.codePostal)
 
       // Prise en charge section NAF (1 lettre A-U) vs sous-classe APE (ex: 49.41A)
@@ -509,7 +535,10 @@ export class SearchEngineHybrid implements SearchEngine {
       const data = await response.json()
       const rawList: any[] = data.results ?? []
 
-      const results: UniteLegalePubliable[] = rawList.map((item) => apiItemToUniteLegalePubliable(item))
+      // Exclusion stricte des entités ayant exercé une demande d'opposition/suppression
+      const results: UniteLegalePubliable[] = rawList
+        .filter((item) => !isEntitySuppressed(item.siren))
+        .map((item) => apiItemToUniteLegalePubliable(item))
       const total = Number(data.total_results || results.length)
       const totalPages = Math.ceil(total / perPage)
 
@@ -538,6 +567,11 @@ export class SearchEngineHybrid implements SearchEngine {
   }
 
   private async fallbackGetUniteLegale(siren: string): Promise<UniteLegalePubliable | null> {
+    // Vérification préalable du registre d'opposition RGPD
+    if (isEntitySuppressed(siren)) {
+      return null
+    }
+
     try {
       const [apiRes, procedures] = await Promise.all([
         safeFetch(`${RECHERCHE_ENTREPRISES_BASE}/search?q=${siren}&limite_matching_etablissements=10`, {
@@ -576,6 +610,12 @@ export class SearchEngineHybrid implements SearchEngine {
   }
 
   private async fallbackGetEtablissement(siret: string): Promise<EtablissementPubliable | null> {
+    const siren = siret.slice(0, 9)
+    // Vérification préalable du registre d'opposition RGPD
+    if (isEntitySuppressed(siret) || isEntitySuppressed(siren)) {
+      return null
+    }
+
     try {
       const response = await safeFetch(`${RECHERCHE_ENTREPRISES_BASE}/search?q=${siret}`, {
         headers: { 'Accept': 'application/json', 'User-Agent': 'AnnuaireEntreprisesFrance/0.1' },
@@ -688,6 +728,9 @@ export class SearchEngineHybrid implements SearchEngine {
 function cleanDenomination(rawName: string | null | undefined): string | null {
   if (!rawName) return null
   const trimmed = rawName.trim()
+  if (/\[?NON[- ]?DIFFUSIBLE\]?/i.test(trimmed)) {
+    return null
+  }
   const match = trimmed.match(/^(.*?)\s*\(\s*\1\s*\)$/i)
   if (match && match[1]) {
     return match[1].trim()
@@ -697,6 +740,9 @@ function cleanDenomination(rawName: string | null | undefined): string | null {
 
 function apiItemToUniteLegalePubliable(item: any): UniteLegalePubliable {
   const isDiffusible = item.statut_diffusion !== 'P'
+  const isPersonnePhysique =
+    (item.nature_juridique && String(item.nature_juridique).startsWith('1')) ||
+    item.complements?.est_entrepreneur_individuel === true
 
   // Dans le format Sirene Insee, date_debut_activite de l'établissement siège
   // est la date du dernier état administratif (qui prend la valeur de date_fermeture lors d'une cessation).
@@ -712,9 +758,22 @@ function apiItemToUniteLegalePubliable(item: any): UniteLegalePubliable {
 
   const cleanNom = cleanDenomination(item.nom_raison_sociale) || cleanDenomination(item.nom_complet)
 
+  // Respect strict de l'opposition RGPD / Insee (Art. A123-96 Code de commerce)
+  // Pour une personne physique ayant demandé la non-diffusion (statut P) : identité masquée
+  let denominationAffichable: string | null = null
+  if (isDiffusible) {
+    denominationAffichable = cleanNom || `Entreprise ${item.siren}`
+  } else if (!isPersonnePhysique) {
+    // Personne morale avec diffusion partielle
+    denominationAffichable = cleanNom || null
+  } else {
+    // Personne physique en opposition : identité strictement masquée
+    denominationAffichable = null
+  }
+
   return {
     siren: item.siren,
-    denominationAffichable: cleanNom || (isDiffusible ? `Entreprise ${item.siren}` : null),
+    denominationAffichable,
     etatAdministratif: item.etat_administratif === 'A' ? 'A' : 'C',
     dateCreation: item.date_creation || null,
     dateFermeture: item.date_fermeture || null,
@@ -722,7 +781,7 @@ function apiItemToUniteLegalePubliable(item: any): UniteLegalePubliable {
     libelleActivite: resolveNafLabel(item.activite_principale),
     nomenclatureActive: 'NAFRev2',
     activitePrincipaleNAF25: item.activite_principale_naf25 || item.siege?.activite_principale_naf25 || null,
-    nomCommercial: item.siege?.nom_commercial || item.nom_raison_sociale || null,
+    nomCommercial: isDiffusible ? (item.siege?.nom_commercial || item.nom_raison_sociale || null) : null,
     dateDebutActivite,
     categorieJuridique: item.nature_juridique || null,
     libelleFormeJuridique: resolveLegalFormLabel(item.nature_juridique),
@@ -732,6 +791,7 @@ function apiItemToUniteLegalePubliable(item: any): UniteLegalePubliable {
     anneeCategorieEntreprise: item.annee_categorie_entreprise || null,
     siretSiege: item.siege?.siret || null,
     diffusionPartielle: !isDiffusible,
+    statutDiffusion: item.statut_diffusion === 'P' ? 'P' : 'O',
     dateMiseAJour: item.date_mise_a_jour || item.date_mise_a_jour_insee || null,
     nombreEtablissements: item.nombre_etablissements ?? 1,
     nombreEtablissementsActifs: item.nombre_etablissements_ouverts ?? (item.etat_administratif === 'A' ? 1 : 0),
@@ -742,7 +802,10 @@ function apiItemToUniteLegalePubliable(item: any): UniteLegalePubliable {
     detailsProcedureCollective: null,
     derniereVerificationTempsReel: new Date().toISOString(),
     proceduresCollectivesHistorique: [],
-    dirigeants: Array.isArray(item.dirigeants)
+    // Pour les personnes physiques en opposition, les mandataires/dirigeants sont masqués
+    dirigeants: (!isDiffusible && isPersonnePhysique)
+      ? []
+      : Array.isArray(item.dirigeants)
       ? item.dirigeants.map((d: any) => ({
           nom: d.nom || '',
           prenoms: d.prenoms || null,
@@ -804,14 +867,14 @@ function apiEtablissementToPubliable(etab: any, sirenFallback?: string): Etablis
     etatAdministratif: etab.etat_administratif === 'A' ? 'A' : 'F',
     dateCreation: etab.date_creation || null,
     dateFermeture: etab.date_fermeture || null,
-    enseigneAffichable: etab.nom_commercial || (Array.isArray(etab.liste_enseignes) && etab.liste_enseignes[0]) || null,
+    enseigneAffichable: isDiffusible ? (etab.nom_commercial || (Array.isArray(etab.liste_enseignes) && etab.liste_enseignes[0]) || null) : null,
     adresseComplete: isDiffusible ? fullAdresse : null,
     adresseLigne1: isDiffusible ? ([etab.numero_voie, etab.type_voie, etab.libelle_voie].filter(Boolean).join(' ') || null) : null,
     adresseLigne2: null,
-    codePostal: etab.code_postal || null,
-    libelleCommune: etab.libelle_commune || null,
-    codeCommune: etab.commune || null,
-    codeDepartement: etab.departement || null,
+    codePostal: isDiffusible ? (etab.code_postal || null) : null,
+    libelleCommune: isDiffusible ? (etab.libelle_commune || null) : null,
+    codeCommune: isDiffusible ? (etab.commune || null) : null,
+    codeDepartement: etab.departement || null, // Le département reste public pour le rattachement administratif
     codeRegion: etab.region || null,
     coordonnees: (isDiffusible && etab.latitude && etab.longitude)
       ? { latitude: parseFloat(etab.latitude), longitude: parseFloat(etab.longitude) }

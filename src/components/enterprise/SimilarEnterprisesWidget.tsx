@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import { getSearchEngine } from '@/lib/search/engine'
 import { formatSiren } from '@/lib/publication/service'
+import { isEntitySuppressed } from '@/lib/search/suppression-registry'
 import { Building2, MapPin, ChevronRight, ArrowRight, Briefcase } from 'lucide-react'
 
 interface SimilarEnterprisesWidgetProps {
@@ -41,7 +42,9 @@ export async function SimilarEnterprisesWidget({
         page: 1,
         perPage: 8,
       })
-      similarCompanies = (res.results || []).filter((e) => e.siren !== currentSiren)
+      similarCompanies = (res.results || []).filter(
+        (e) => e.siren !== currentSiren && !e.diffusionPartielle && !isEntitySuppressed(e.siren)
+      )
     }
 
     // 2. Si pas assez de résultats, élargissement au département
@@ -54,7 +57,11 @@ export async function SimilarEnterprisesWidget({
         perPage: 8,
       })
       const extra = (resDep.results || []).filter(
-        (e) => e.siren !== currentSiren && !similarCompanies.some((sc) => sc.siren === e.siren)
+        (e) =>
+          e.siren !== currentSiren &&
+          !e.diffusionPartielle &&
+          !isEntitySuppressed(e.siren) &&
+          !similarCompanies.some((sc) => sc.siren === e.siren)
       )
       similarCompanies = [...similarCompanies, ...extra]
       if (similarCompanies.length > 0 && !nomCommune) {

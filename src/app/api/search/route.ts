@@ -15,6 +15,12 @@ const searchSchema = z.object({
   nature_juridique: z.string().regex(/^\d{4}$/).optional(),
   etat_administratif: z.enum(['A', 'C', 'F']).optional(),
   categorie_entreprise: z.enum(['PME', 'ETI', 'GE']).optional(),
+  tranche_effectifs: z.string().max(10).optional(),
+  est_ess: z.preprocess((v) => v === 'true' || v === '1' || v === true, z.boolean()).optional(),
+  est_rge: z.preprocess((v) => v === 'true' || v === '1' || v === true, z.boolean()).optional(),
+  est_organisme_formation: z.preprocess((v) => v === 'true' || v === '1' || v === true, z.boolean()).optional(),
+  est_societe_mission: z.preprocess((v) => v === 'true' || v === '1' || v === true, z.boolean()).optional(),
+  est_bio: z.preprocess((v) => v === 'true' || v === '1' || v === true, z.boolean()).optional(),
   page: z.coerce.number().int().min(1).max(1000).default(1),
   per_page: z.coerce.number().int().min(1).max(25).default(20),
   sort: z.enum(['pertinence', 'nom', 'dateCreation', 'dateCreationDesc']).default('pertinence'),
@@ -35,6 +41,7 @@ export async function GET(request: NextRequest) {
   const {
     q, departement, region, code_commune, code_postal, activite_principale,
     section, nature_juridique, etat_administratif, categorie_entreprise,
+    tranche_effectifs, est_ess, est_rge, est_organisme_formation, est_societe_mission, est_bio,
     page, per_page, sort,
   } = parsed.data
 
@@ -49,6 +56,12 @@ export async function GET(request: NextRequest) {
     natureJuridique: nature_juridique,
     etatAdministratif: etat_administratif,
     categorieEntreprise: categorie_entreprise ?? null,
+    trancheEffectifs: tranche_effectifs,
+    estEss: est_ess,
+    estRge: est_rge,
+    estOrganismeFormation: est_organisme_formation,
+    estSocieteMission: est_societe_mission,
+    estBio: est_bio,
     page,
     perPage: per_page,
     sort,

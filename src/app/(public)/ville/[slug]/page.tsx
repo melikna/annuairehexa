@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { getCommuneBySlug, getDepartementByCode } from '@/lib/geo/service'
 import { getSearchEngine } from '@/lib/search/engine'
 import { formatSiren, formatTrancheEffectif } from '@/lib/publication/service'
+import { formatResultCount } from '@/lib/search/pagination-utils'
 import { ListingFilters } from '@/components/search/ListingFilters'
 import type { UniteLegalePubliable } from '@/types/domain'
 import { MapPin, Search, Building2, Users, ChevronRight, Briefcase } from 'lucide-react'
@@ -249,10 +250,14 @@ export default async function VilleDetailPage({ params, searchParams }: VillePag
                 <h2 className="text-sm font-semibold text-gray-900">Tissu économique</h2>
               </div>
               <p className="text-2xl font-bold text-gray-900">
-                {searchResult.pagination.total.toLocaleString('fr-FR')}
+                {searchResult.pagination.total >= 10000
+                  ? '+ de 10 000'
+                  : searchResult.pagination.total.toLocaleString('fr-FR')}
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
-                entreprises répertoriées sur la commune
+                {searchResult.pagination.total >= 10000
+                  ? 'entreprises consultables (plafond API)'
+                  : 'entreprises répertoriées sur la commune'}
               </p>
             </div>
             <Link
@@ -278,9 +283,15 @@ export default async function VilleDetailPage({ params, searchParams }: VillePag
               Liste des entreprises de {commune.nom}
             </h2>
             <span className="text-sm text-gray-500">
-              Page {searchResult.pagination.page} sur {searchResult.pagination.totalPages || 1} ({searchResult.pagination.total} résultats)
+              Page {searchResult.pagination.page} sur {searchResult.pagination.totalPages || 1} ({formatResultCount(searchResult.pagination.total).displayCount})
             </span>
           </div>
+
+          {formatResultCount(searchResult.pagination.total).notice && (
+            <div className="p-3 mb-4 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 leading-relaxed">
+              {formatResultCount(searchResult.pagination.total).notice}
+            </div>
+          )}
 
           {searchResult.results.length === 0 ? (
             <div className="p-8 bg-gray-50 border border-gray-200 rounded-xl text-center">

@@ -11,6 +11,7 @@ import type { SearchParams, UniteLegalePubliable } from '@/types/domain'
 import { Building2, MapPin, Search, X, AlertCircle } from 'lucide-react'
 import { NAF_SECTIONS } from '@/lib/naf/sections'
 import { ListingFilters } from '@/components/search/ListingFilters'
+import { formatResultCount } from '@/lib/search/pagination-utils'
 
 export const revalidate = 0  // Pas de cache pour la recherche
 
@@ -262,16 +263,22 @@ async function SearchResults({ params, baseUrl }: { params: SearchParams; baseUr
       )
     }
 
+    const countInfo = formatResultCount(result.pagination.total, result.totalIsExact)
+
     return (
       <div>
         {/* Comptage */}
-        <p className="text-sm text-gray-600 mb-4" role="status" aria-live="polite">
-          {result.totalIsExact
-            ? `${result.pagination.total.toLocaleString('fr-FR')} résultat${result.pagination.total > 1 ? 's' : ''}`
-            : `Plus de ${result.pagination.total.toLocaleString('fr-FR')} résultats`}
+        <p className="text-sm text-gray-600 mb-2" role="status" aria-live="polite">
+          <span className="font-semibold text-gray-900">{countInfo.displayCount}</span>
           {params.q && ` pour «\u00a0${params.q}\u00a0»`}
           {result.pagination.totalPages > 1 && ` — page ${result.pagination.page} sur ${result.pagination.totalPages}`}
         </p>
+
+        {countInfo.notice && (
+          <div className="p-3 mb-4 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 leading-relaxed">
+            {countInfo.notice}
+          </div>
+        )}
 
         {/* Liste des résultats */}
         <ul className="space-y-3" aria-label="Résultats de recherche">

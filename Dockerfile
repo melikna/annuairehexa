@@ -17,6 +17,8 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+ENV NODE_OPTIONS="--max-old-space-size=1280"
+
 RUN npm run build
 
 # 3. Production image, copy all the files and run next
@@ -25,6 +27,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -33,6 +36,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/next.config.ts ./next.config.ts
 
 USER nextjs
 

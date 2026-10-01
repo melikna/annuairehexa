@@ -1,9 +1,11 @@
+import { singleFlight } from '@/lib/api/single-flight'
 /**
  * Service Métier : Procédures Collectives en direct du BODACC
  * Récupère, filtre, classe et normalise les annonces de liquidations judiciaires,
  * redressements judiciaires et sauvegardes publiées au BODACC.
  */
 
+import { BoundedCache } from '@/lib/api/bounded-cache'
 import { safeFetch } from '@/lib/api/fetch-client'
 
 const BODACC_API_BASE = 'https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales/records'
@@ -50,7 +52,8 @@ interface CacheEntry {
   expiresAt: number
 }
 
-const cache = new Map<string, CacheEntry>()
+const cache = new BoundedCache<CacheEntry>()
+const loadOnce = singleFlight<ProceduresResponse>(4)
 const CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
 
 /**
@@ -184,77 +187,6 @@ function normalizeRecord(rec: Record<string, any>): ProcedureItem | null {
 }
 
 /**
- * Données de secours réalistes en cas de coupure temporaire de l'API externe
- */
-function getFallbackProcedures(): ProcedureItem[] {
-  return [
-    {
-      id: 'A2026-FALLBACK-1',
-      siren: '911093649',
-      denomination: '2S CLEAN SERVICES',
-      formeJuridique: 'Société par actions simplifiée',
-      activite: 'Nettoyage industriel et rénovation de locaux',
-      departementCode: '92',
-      departementNom: 'Hauts-de-Seine',
-      ville: 'Issy-les-Moulineaux',
-      codePostal: '92130',
-      nature: 'liquidation',
-      natureLibelle: 'Liquidation Judiciaire',
-      datePublication: '2026-09-20',
-      dateJugement: '2026-09-10',
-      tribunal: 'Greffe du Tribunal de Commerce de Nanterre',
-      complementJugement: 'Jugement prononçant la liquidation judiciaire, date de cessation des paiements fixée.',
-      liquidateurMandataire: 'SCP Btsg Mission Conduite Par Me Pierre Bourion',
-      urlBodacc: 'https://www.bodacc.fr',
-      parutionNumero: '20260180',
-      numeroAnnonce: 3235,
-    },
-    {
-      id: 'A2026-FALLBACK-2',
-      siren: '824731996',
-      denomination: 'JMB PARIS',
-      formeJuridique: 'SARL',
-      activite: 'Boulangerie et pâtisserie artisanale',
-      departementCode: '93',
-      departementNom: 'Seine-Saint-Denis',
-      ville: 'Le Raincy',
-      codePostal: '93340',
-      nature: 'liquidation',
-      natureLibelle: 'Liquidation Judiciaire',
-      datePublication: '2026-09-20',
-      dateJugement: '2026-09-10',
-      tribunal: 'Greffe du Tribunal de Commerce de Bobigny',
-      complementJugement: 'Jugement prononçant la liquidation judiciaire.',
-      liquidateurMandataire: 'SELAS M.J.S. Partners prise en la personne de Me Nicolas Soinne',
-      urlBodacc: 'https://www.bodacc.fr',
-      parutionNumero: '20260180',
-      numeroAnnonce: 3285,
-    },
-    {
-      id: 'A2026-FALLBACK-3',
-      siren: '910539386',
-      denomination: 'E N\'AIR',
-      formeJuridique: 'SASU',
-      activite: 'Installation d\'équipements thermiques et poêles à granules',
-      departementCode: '92',
-      departementNom: 'Hauts-de-Seine',
-      ville: 'Levallois-Perret',
-      codePostal: '92300',
-      nature: 'redressement',
-      natureLibelle: 'Redressement Judiciaire',
-      datePublication: '2026-09-19',
-      dateJugement: '2026-09-10',
-      tribunal: 'Greffe du Tribunal de Commerce de Nanterre',
-      complementJugement: 'Ouverture d\'une procédure de redressement judiciaire avec période d\'observation.',
-      liquidateurMandataire: 'Selarl Herbaut-Pecou',
-      urlBodacc: 'https://www.bodacc.fr',
-      parutionNumero: '20260180',
-      numeroAnnonce: 3236,
-    },
-  ]
-}
-
-/**
  * Récupère les procédures collectives avec tri par date décroissante et filtrage par département
  */
 export async function fetchProceduresCollectives(params: ProceduresFilterParams = {}): Promise<ProceduresResponse> {
@@ -267,6 +199,7 @@ export async function fetchProceduresCollectives(params: ProceduresFilterParams 
   }
 
   try {
+    return await loadOnce(cacheKey, async () => {
     const url = new URL(BODACC_API_BASE)
 
     // Construction de la clause WHERE OpenDataSoft
@@ -274,7 +207,11 @@ export async function fetchProceduresCollectives(params: ProceduresFilterParams 
 
     if (departement && departement !== 'all') {
       const cleanDep = departement.padStart(2, '0')
-      whereClauses.push(`numerodepartement='${cleanDep}' or numerodepartement='${departement}'`)
+      if (cleanDep !== departement) {
+        whereClauses.push(`(numerodepartement='${cleanDep}' or numerodepartement='${departement}')`)
+      } else {
+        whereClauses.push(`numerodepartement='${departement}'`)
+      }
     }
 
     url.searchParams.set('where', whereClauses.join(' and '))
@@ -339,25 +276,15 @@ export async function fetchProceduresCollectives(params: ProceduresFilterParams 
     })
 
     return response
+    })
   } catch (error) {
     console.warn('[ProceduresService] Erreur interrogation BODACC :', error)
 
-    let fallbackItems = getFallbackProcedures()
-    if (departement && departement !== 'all') {
-      fallbackItems = fallbackItems.filter(i => i.departementCode === departement)
-    }
-    if (nature && nature !== 'all') {
-      fallbackItems = fallbackItems.filter(i => i.nature === nature)
-    }
-
+    // Sécurité juridique absolue : jamais de fausse procédure de faillite en secours
     return {
-      totalCount: fallbackItems.length,
-      results: fallbackItems,
-      departementsDisponibles: [
-        { code: '92', nom: 'Hauts-de-Seine', count: 2 },
-        { code: '93', nom: 'Seine-Saint-Denis', count: 1 },
-        { code: '31', nom: 'Haute-Garonne', count: 1 },
-      ],
+      totalCount: 0,
+      results: [],
+      departementsDisponibles: [],
       updatedAt: new Date().toISOString(),
     }
   }

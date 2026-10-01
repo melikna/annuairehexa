@@ -54,7 +54,27 @@ export default function RootLayout({
       <head>
         {/* Préchargement de la police Marianne si disponible */}
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* ads.txt géré via le fichier public/ads.txt */}
+        {/* Google tag (gtag.js) */}
+        <script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-5VNEQWPW7N"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-5VNEQWPW7N');
+            `,
+          }}
+        />
+        {/* Google AdSense */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5481390271109229"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className="h-full bg-gray-50 text-gray-900 antialiased">
         {children}

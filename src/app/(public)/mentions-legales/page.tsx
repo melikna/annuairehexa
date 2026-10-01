@@ -74,13 +74,15 @@ export default function MentionsLegalesPage() {
               2. Hébergement &amp; Infrastructure technique
             </h2>
             <p className="mb-3">
-              Le site {siteName} est propulsé par une infrastructure distribuée haute performance répondant aux exigences strictes
-              européennes de sécurité et de résilience (centres de données localisés dans l'Union Européenne) :
+              Le site {siteName} est hébergé sur des serveurs dédiés hautement sécurisés localisés au sein de l'Union Européenne, en stricte conformité avec les exigences de l'article 6, I, 2 de la loi LCEN :
             </p>
-            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-1">
-              <p><strong>Fournisseur d'hébergement :</strong> Cloudflare, Inc. / Vercel Inc. (Data Centers EU)</p>
-              <p><strong>Localisation des données :</strong> Union Européenne (France, Allemagne)</p>
-              <p><strong>Sécurité :</strong> Chiffrement des transferts via protocole TLS 1.3 / certificat SSL Let's Encrypt</p>
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-1.5">
+              <p><strong>Hébergeur :</strong> IONOS SE</p>
+              <p><strong>Siège social :</strong> Elgendorfer Str. 57, 56410 Montabaur, Allemagne</p>
+              <p><strong>Téléphone :</strong> +33 (0)9 70 80 89 11 / +49 (0) 721 170 555</p>
+              <p><strong>Registre du commerce :</strong> Amtsgericht Montabaur HRB 24498</p>
+              <p><strong>Localisation des centres de données :</strong> Union Européenne (Allemagne)</p>
+              <p><strong>Sécurité des échanges :</strong> Chiffrement TLS 1.3 / Certificat SSL Let's Encrypt</p>
             </div>
           </section>
 

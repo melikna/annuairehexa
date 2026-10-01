@@ -153,6 +153,7 @@ export function buildUniteLegalePubliable(
     anneeCategorieEntreprise: ul.anneeCategorieEntreprise,
     siretSiege: ul.siretSiege,
     diffusionPartielle,
+    statutDiffusion: ul.statutDiffusion,
     dateMiseAJour: ul.dateDernierTraitementUniteLegale,
     nombreEtablissements,
     nombreEtablissementsActifs,

@@ -9,6 +9,7 @@ import { ListingFilters } from '@/components/search/ListingFilters'
 import { getRegionBySlug, getDepartements, getGeoStats } from '@/lib/geo/service'
 import { getSearchEngine } from '@/lib/search/engine'
 import { formatSiren, formatTrancheEffectif } from '@/lib/publication/service'
+import { formatResultCount } from '@/lib/search/pagination-utils'
 import { MapPin, Building2, ChevronRight, TrendingUp, Briefcase } from 'lucide-react'
 
 export const revalidate = 3600
@@ -197,10 +198,16 @@ export default async function RegionDetailPage({ params, searchParams }: RegionP
             </h2>
             {searchResult.pagination.total > 0 && (
               <span className="text-sm text-gray-500">
-                Page {searchResult.pagination.page} sur {searchResult.pagination.totalPages || 1} ({searchResult.pagination.total} résultats)
+                Page {searchResult.pagination.page} sur {searchResult.pagination.totalPages || 1} ({formatResultCount(searchResult.pagination.total).displayCount})
               </span>
             )}
           </div>
+
+          {formatResultCount(searchResult.pagination.total).notice && (
+            <div className="p-3 mb-4 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 leading-relaxed">
+              {formatResultCount(searchResult.pagination.total).notice}
+            </div>
+          )}
 
           {searchResult.results.length === 0 ? (
             <div className="p-8 bg-gray-50 border border-gray-200 rounded-xl text-center">
