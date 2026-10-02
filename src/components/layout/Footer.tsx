@@ -170,6 +170,15 @@ export function Footer() {
               </Link>
             </div>
           </div>
+          <p className="mt-4 text-xs text-gray-400">
+            <a
+              href="https://www.sitetoclient.com/"
+              title="Création de site internet"
+              className="hover:text-white hover:underline transition-colors"
+            >
+              Site internet créé par SiteToClient
+            </a>
+          </p>
         </div>
       </div>
     </footer>
