@@ -170,13 +170,20 @@ export function Footer() {
               </Link>
             </div>
           </div>
-          <p className="mt-4 text-xs text-gray-400">
+          <p className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-400">
             <a
               href="https://www.sitetoclient.com/"
               title="Création de site internet"
               className="hover:text-white hover:underline transition-colors"
             >
               Création de site internet
+            </a>
+            <a
+              href="https://wmn-digital.fr"
+              title="Formation IA"
+              className="hover:text-white hover:underline transition-colors"
+            >
+              Formation IA
             </a>
           </p>
         </div>
