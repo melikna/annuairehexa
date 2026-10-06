@@ -176,7 +176,7 @@ export function Footer() {
               title="Création de site internet"
               className="hover:text-white hover:underline transition-colors"
             >
-              Site internet créé par SiteToClient
+              Création de site internet
             </a>
           </p>
         </div>
