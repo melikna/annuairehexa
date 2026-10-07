@@ -9,7 +9,7 @@ const offers = [
     linkTitle: 'Création de site internet',
     action: 'Découvrir SiteToClient',
     Icon: Globe,
-    color: 'bg-orange-600 hover:bg-orange-700',
+    color: 'bg-orange-700 hover:bg-orange-800',
   },
   {
     name: 'WMN Digital',
