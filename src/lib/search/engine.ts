@@ -524,12 +524,7 @@ export class SearchEngineHybrid implements SearchEngine {
       })
 
       if (!response.ok) {
-        return {
-          results: [],
-          pagination: { page, perPage, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
-          totalIsExact: false,
-          params,
-        }
+        throw new Error(`Recherche Entreprises HTTP ${response.status}`)
       }
 
       const data = await response.json()
@@ -558,6 +553,7 @@ export class SearchEngineHybrid implements SearchEngine {
     } catch (err) {
       console.warn('[SearchEngineHybrid] Erreur API Recherche Entreprises fallback:', err)
       return {
+        unavailable: true,
         results: [],
         pagination: { page, perPage, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
         totalIsExact: false,

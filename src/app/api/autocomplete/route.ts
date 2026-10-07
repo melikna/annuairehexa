@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
       page: 1,
     })
 
+    if (searchRes.unavailable) throw new Error('Search upstream unavailable')
     const suggestions = searchRes.results.map((r) => ({
       siren: r.siren,
       nom: r.denominationAffichable ?? `Entreprise ${r.siren}`,
@@ -39,6 +40,8 @@ export async function GET(request: NextRequest) {
     )
   } catch (error) {
     console.error('[Autocomplete API Error]:', error)
-    return NextResponse.json({ suggestions: [] }, { status: 200 })
+    return NextResponse.json({ suggestions: [], error: 'Recherche temporairement indisponible' }, {
+      status: 503, headers: { 'Cache-Control': 'no-store', 'Retry-After': '10' },
+    })
   }
 }

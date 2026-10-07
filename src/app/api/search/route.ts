@@ -70,6 +70,11 @@ export async function GET(request: NextRequest) {
   try {
     const engine = getSearchEngine()
     const result = await engine.searchEntities(params)
+    if (result.unavailable) {
+      return NextResponse.json({ error: 'Recherche temporairement indisponible' }, {
+        status: 503, headers: { 'Cache-Control': 'no-store', 'Retry-After': '10' },
+      })
+    }
 
     return NextResponse.json(result, {
       headers: {

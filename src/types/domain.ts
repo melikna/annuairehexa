@@ -529,6 +529,8 @@ export interface PaginationMeta {
 }
 
 export interface SearchResult<T> {
+  /** Distinguish an upstream outage from a genuine empty result. */
+  unavailable?: boolean
   results: T[]
   pagination: PaginationMeta
   /** Indique si le total est exact ou approximatif */

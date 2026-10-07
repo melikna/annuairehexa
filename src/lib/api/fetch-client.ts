@@ -10,31 +10,35 @@ const permissiveAgent = new Agent({
   },
 })
 
-let socksDisabledUntil = 0
 const MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 const MAX_ACTIVE_REQUESTS = 16
 let activeRequests = 0
 
-function socks5Connect(targetHost: string, targetPort: number, socksHost: string, socksPort: number): Promise<net.Socket> {
-  if (Date.now() < socksDisabledUntil) {
-    return Promise.reject(new Error('SOCKS5 proxy temporarily circuit-broken'))
-  }
-
+function socks5Connect(targetHost: string, targetPort: number, socksHost: string, socksPort: number, signal?: AbortSignal | null): Promise<net.Socket> {
+  signal?.throwIfAborted()
   return new Promise((resolve, reject) => {
     const s = net.connect(socksPort, socksHost, () => {
       // Version 5, 1 méthode d'authentification (0x00: aucune)
       s.write(Buffer.from([0x05, 0x01, 0x00]))
     })
 
-    const timeout = setTimeout(() => {
+    const onAbort = () => {
+      clearTimeout(timeout)
+      signal?.removeEventListener('abort', onAbort)
       s.destroy()
-      socksDisabledUntil = Date.now() + 60000
+      reject(signal?.reason ?? new Error('Request aborted'))
+    }
+    const timeout = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      s.destroy()
       reject(new Error(`SOCKS5 connection timeout to ${socksHost}:${socksPort}`))
-    }, 1500)
+    }, 4000)
+    signal?.addEventListener('abort', onAbort, { once: true })
 
     s.once('data', (data) => {
       if (data[0] !== 0x05 || data[1] !== 0x00) {
         clearTimeout(timeout)
+        signal?.removeEventListener('abort', onAbort)
         s.destroy()
         return reject(new Error('SOCKS5 auth negotiation failed'))
       }
@@ -49,6 +53,7 @@ function socks5Connect(targetHost: string, targetPort: number, socksHost: string
 
       s.once('data', (resp) => {
         clearTimeout(timeout)
+        signal?.removeEventListener('abort', onAbort)
         if (resp[0] !== 0x05 || resp[1] !== 0x00) {
           s.destroy()
           return reject(new Error(`SOCKS5 connect command failed (code ${resp[1]})`))
@@ -59,7 +64,7 @@ function socks5Connect(targetHost: string, targetPort: number, socksHost: string
 
     s.on('error', (err) => {
       clearTimeout(timeout)
-      socksDisabledUntil = Date.now() + 60000
+      signal?.removeEventListener('abort', onAbort)
       reject(err)
     })
   })
@@ -83,7 +88,7 @@ export async function socksFetch(urlStr: string, init?: RequestInit): Promise<Re
   }
   const socksPort = parseInt(process.env.SOCKS_PROXY_PORT || '9050', 10)
 
-  const rawSocket = await socks5Connect(targetHost, targetPort, socksHost, socksPort)
+  const rawSocket = await socks5Connect(targetHost, targetPort, socksHost, socksPort, init?.signal)
 
   const socket: net.Socket = isHttps
     ? (tls.connect({ socket: rawSocket, servername: targetHost, rejectUnauthorized: false }) as any)

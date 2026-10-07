@@ -1,3 +1,4 @@
+import { SearchUnavailable } from '@/components/search/SearchUnavailable'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Suspense } from 'react'
@@ -245,6 +246,8 @@ async function SearchResults({ params, baseUrl }: { params: SearchParams; baseUr
   try {
     const engine = getSearchEngine()
     const result = await engine.searchEntities(params)
+
+    if (result.unavailable) return <SearchUnavailable />
 
     if (result.results.length === 0) {
       return (

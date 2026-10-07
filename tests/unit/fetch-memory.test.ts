@@ -6,6 +6,7 @@ describe('SOCKS request lifecycle', () => {
   let server: net.Server
   const sockets = new Set<net.Socket>()
   let respond: (socket: net.Socket) => void
+  let negotiationDelay = 0
   const oldHost = process.env.SOCKS_PROXY_HOST
   const oldPort = process.env.SOCKS_PROXY_PORT
 
@@ -17,8 +18,10 @@ describe('SOCKS request lifecycle', () => {
       socket.once('data', () => {
         socket.write(Buffer.from([5, 0]))
         socket.once('data', () => {
-          socket.write(Buffer.from([5, 0, 0, 1, 127, 0, 0, 1, 0, 80]))
           socket.once('data', () => respond(socket))
+          setTimeout(() => {
+            if (!socket.destroyed) socket.write(Buffer.from([5, 0, 0, 1, 127, 0, 0, 1, 0, 80]))
+          }, negotiationDelay)
         })
       })
     })
@@ -52,5 +55,24 @@ describe('SOCKS request lifecycle', () => {
     const controller = new AbortController()
     controller.abort(new Error('cancelled'))
     await expect(safeFetch('http://example.test/', { signal: controller.signal })).rejects.toThrow('cancelled')
+  })
+  it('allows a slow relay handshake without disabling subsequent searches', async () => {
+    negotiationDelay = 1700
+    respond = socket => socket.end('HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nOK')
+    try {
+      expect(await (await socksFetch('http://example.test/')).text()).toBe('OK')
+    } finally {
+      negotiationDelay = 0
+    }
+    expect(await (await socksFetch('http://example.test/')).text()).toBe('OK')
+  })
+  it('cancels a pending handshake without blocking the next request', async () => {
+    negotiationDelay = 1700
+    try {
+      await expect(socksFetch('http://example.test/', { signal: AbortSignal.timeout(100) })).rejects.toThrow()
+    } finally {
+      negotiationDelay = 0
+    }
+    expect(await (await socksFetch('http://example.test/')).text()).toBe('OK')
   })
 })
