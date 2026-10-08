@@ -4,7 +4,11 @@ const offers = [
   {
     name: 'SiteToClient',
     title: 'Créer le site de mon entreprise',
-    description: 'Présentez votre activité et vos services avec un site internet professionnel.',
+    highlight: '0 € de frais de création + 99 €/mois seulement',
+    details: [
+      'Engagement 1 an — tout inclus.',
+      'Maintenance, assistance, hébergement, référencement naturel et modifications.',
+    ],
     href: 'https://www.sitetoclient.com/',
     linkTitle: 'Création de site internet',
     action: 'Découvrir SiteToClient',
@@ -14,7 +18,12 @@ const offers = [
   {
     name: 'WMN Digital',
     title: 'Former mon équipe à l’IA',
-    description: 'Découvrez les formations pour intégrer l’intelligence artificielle dans votre quotidien professionnel.',
+    highlight: 'Organisme de formation certifié Qualiopi',
+    details: [
+      'Plus de 160 avis 5 étoiles · Prise en charge OPCO jusqu’à 100 %.',
+      'Formation en présentiel ou à distance, au choix.',
+      'Programme de formation sur mesure, en fonction de vos besoins.',
+    ],
     href: 'https://wmn-digital.fr',
     linkTitle: 'Formation IA',
     action: 'Découvrir les formations',
@@ -31,7 +40,7 @@ export function BusinessOffers() {
           Pour développer votre entreprise
         </p>
         <div className="grid gap-4 md:grid-cols-2">
-          {offers.map(({ name, title, description, href, linkTitle, action, Icon, color }) => (
+          {offers.map(({ name, title, highlight, details, href, linkTitle, action, Icon, color }) => (
             <a
               key={name}
               href={href}
@@ -43,7 +52,10 @@ export function BusinessOffers() {
                 <span className="text-sm font-semibold">{name}</span>
               </div>
               <h2 className="text-xl font-bold tracking-tight text-white">{title}</h2>
-              <p className="mb-4 mt-2 text-sm leading-relaxed text-white">{description}</p>
+              <p className="mt-3 text-lg font-bold leading-snug text-white">{highlight}</p>
+              <ul className="mb-5 mt-2 space-y-1 text-sm leading-relaxed text-white">
+                {details.map((detail) => <li key={detail}>{detail}</li>)}
+              </ul>
               <span className="mt-auto inline-flex w-fit items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-gray-950 group-hover:underline">
                 {action}
                 <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
